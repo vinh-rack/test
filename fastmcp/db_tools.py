@@ -1,13 +1,35 @@
 import os
+import urllib
 
-import aioodbc
-from sqlalchemy import create_engine, text
+from sqlalchemy import URL, create_engine, text
 
 from fastmcp import tool
+from utils.config import settings
 from utils.logger import setup_logger
 
 LOGGER = setup_logger("db_tools")
-DB_DSN = os.getenv("DB_DSN", "http://3.109.246.243")
+
+@tool(
+    "health_check",
+    "Perform a health check using the connection string"
+)
+async def health_check(conn_string: str, db_name: str):
+    try:
+        engine = create_engine(conn_string)
+        with engine.connect() as conn:
+            query = text(open("../queries/health_check.sql").read())
+
+            result = conn.execute(query)
+
+            if result.returns_rows:
+                LOGGER.info("Query executed successfully")
+                rows = [row for row in result if row.DatabaseName == db_name]
+
+                return rows
+            else:
+                return "Query executed successfully with no result rows"
+    except Exception as e:
+        LOGGER.error(f"Error checking log space: {e}")
 
 @tool(
     "check_db_size",
@@ -17,24 +39,17 @@ async def check_db_size(conn_string: str, db_name: str):
     try:
         engine = create_engine(conn_string)
         with engine.connect() as conn:
-            query = text("""
-                SELECT
-                    DB_NAME(database_id) AS DatabaseName,
-                    Name AS FileName,
-                    type_desc AS FileType,
-                    size * 8 / 1024 AS SizeMB
-                FROM sys.master_files
-                WHERE database_id = DB_ID(:db_name);
-            """)
+            query = text(text(open("../queries/db_size.sql").read()))
 
             result = conn.execute(query, {"db_name": db_name})
-            
+
             if result.returns_rows:
+                LOGGER.info("Query executed successfully")
                 rows = [dict(row._mapping) for row in result.fetchall()]
 
                 return rows
             else:
-                return "Query executed successfully"
+                return "Query executed successfully with no result rows"
     except Exception as e:
         LOGGER.error(f"Error checking database size: {e}")
 
@@ -46,18 +61,17 @@ async def check_log_space(conn_string: str, db_name: str):
     try:
         engine = create_engine(conn_string)
         with engine.connect() as conn:
-            query = text("""
-                DBCC SQLPERF(LOGSPACE);
-            """)
+            query = text(open("../queries/log_space.sql").read())
 
             result = conn.execute(query)
-            
+
             if result.returns_rows:
+                LOGGER.info("Query executed successfully")
                 rows = [dict(row._mapping) for row in result.fetchall() if row.DatabaseName == db_name]
 
                 return rows
             else:
-                return "Query executed successfully"
+                return "Query executed successfully with no result rows"
     except Exception as e:
         LOGGER.error(f"Error checking log space: {e}")
 
@@ -69,24 +83,40 @@ async def check_blocking_sessions(conn_string: str):
     try:
         engine = create_engine(conn_string)
         with engine.connect() as conn:
-            query = text("""
-                SELECT
-                    blocking_session_id AS BlockingSessionID,
-                    session_id AS BlockedSessionID,
-                    wait_type,
-                    wait_time,
-                    wait_resource
-                FROM sys.dm_exec_requests
-                WHERE blocking_session_id <> 0;
-            """)
+            query = text(open("../queries/blocking_sessions.sql").read())
 
             result = conn.execute(query)
-            
+
             if result.returns_rows:
+                LOGGER.info("Query executed successfully")
                 rows = [dict(row._mapping) for row in result.fetchall()]
 
                 return rows
             else:
-                return "Query executed successfully"
+                return "Query executed successfully with no result rows"
     except Exception as e:
         LOGGER.error(f"Error checking blocking sessions: {e}")
+
+@tool(
+    "check_index_fragmentation",
+    "Check for index fragmentations in a MSSQL Database"
+)
+def check_index_fragmentation(conn_string: str, db_name: str):
+
+    try:
+        engine = create_engine(conn_string)
+
+        with engine.connect() as conn:
+            query = text(open("../queries/index_frag.sql").read())
+
+            result = conn.execute(query, {"db_name": db_name})
+
+            if result.returns_rows:
+                LOGGER.info("Query executed successfully")
+                rows = [dict(row._mapping) for row in result.fetchall()]
+
+                return rows
+            else:
+                return "Query executed successfully with no result rows"
+    except Exception as e:
+        LOGGER.error(f"Error checking index frag: {e}")

@@ -2,7 +2,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-from ..config.config import settings
+from .config import settings
 
 LOG_LEVEL = getattr(logging, settings.log_level.upper(), logging.INFO)
 FILE_FORMATTER = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
