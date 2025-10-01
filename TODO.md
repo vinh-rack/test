@@ -1,1 +1,1 @@
-- [ ] Figure out how to install the MSSQL driver for all devices running thí
+- [ ] Figure out how to install the MSSQL driver for all devices running this

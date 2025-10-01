@@ -1,7 +1,7 @@
 from sqlalchemy import URL
 
 
-def create_connection_string(user: str, password: str, host: str, port: str, database: str, driver: str) -> URL:
+def create_connection_string_mssql(user: str, password: str, host: str, port: str, database: str) -> URL:
     return URL.create(
         "mssql+pyodbc",
         username=user,
@@ -10,7 +10,7 @@ def create_connection_string(user: str, password: str, host: str, port: str, dat
         port=port,
         database=database,
         query={
-            "driver": {driver},
+            "driver": "ODBC Driver 18 for SQL Server",
             "TrustServerCertificate": "yes",
         },
     )
