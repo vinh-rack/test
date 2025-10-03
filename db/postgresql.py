@@ -1,10 +1,10 @@
 from sqlalchemy import URL
 
 
-def create_connection_string_postgresql(user: str, password: str, host: str, port: str, database: str) -> URL:
+def create_connection_string_postgresql(username: str, password: str, host: str, port: str, database: str) -> URL:
     return URL.create(
         "postgresql+psycopg2",
-        username=user,
+        username=username,
         password=password,
         host=host,
         port=port,
